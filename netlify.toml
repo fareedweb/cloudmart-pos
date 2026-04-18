@@ -3,6 +3,10 @@
   command = "npm ci --legacy-peer-deps && npm run build"
   publish = "dist"
 
+[env.production]
+  NODE_ENV = "production"
+  VITE_API_URL = "https://cloudmart-pos-backend.onrender.com/api"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
