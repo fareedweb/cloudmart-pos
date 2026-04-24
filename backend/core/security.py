@@ -1,28 +1,25 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from core.database import get_db
 from models.models import User, UserRole
+import bcrypt
 import os
 
 SECRET_KEY = os.getenv("SECRET_KEY", "cloudmart-secret-key-change-in-production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 hours for POS shift
+ACCESS_TOKEN_EXPIRE_MINUTES = 480
 
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
 
 def hash_password(password: str) -> str:
-    # Truncate password to 72 bytes as required by bcrypt
-    password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(12)).decode('utf-8')
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
