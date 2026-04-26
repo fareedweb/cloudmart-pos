@@ -23,7 +23,14 @@ API.interceptors.response.use(
 )
 
 // Auth
-export const login = (data) => API.post('/auth/login', new URLSearchParams(data))
+export const login = (data) => {
+  const params = new URLSearchParams()
+  params.append('username', data.username)
+  params.append('password', data.password)
+  return API.post('/auth/login', params, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+  })
+}
 export const logout = () => API.post('/auth/logout')
 export const getMe = () => API.get('/auth/me')
 export const resetPassword = (data) => API.post('/auth/reset-password', data)

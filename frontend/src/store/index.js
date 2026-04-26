@@ -39,9 +39,10 @@ export const useCartStore = create((set, get) => ({
     const items = get().items
     const existing = items.find((i) => i.product_id === product.id)
     if (existing) {
-      set({ items: items.map((i) => i.product_id === product.id ? { ...i, quantity: i.quantity + 1, line_total: (i.quantity + 1) * i.unit_price } : i) })
+      const line_total = (existing.quantity + 1) * existing.unit_price - (existing.discount_amount || 0)
+      set({ items: items.map((i) => i.product_id === product.id ? { ...i, quantity: i.quantity + 1, line_total: Math.max(0, line_total) } : i) })
     } else {
-      set({ items: [...items, { product_id: product.id, name: product.name, unit_price: product.selling_price, quantity: 1, discount_pct: 0, tax_rate: product.tax_rate || 0, line_total: product.selling_price }] })
+      set({ items: [...items, { product_id: product.id, name: product.name, unit_price: product.selling_price, quantity: 1, discount_amount: 0, tax_rate: product.tax_rate || 0, line_total: product.selling_price }] })
     }
   },
 
@@ -51,24 +52,38 @@ export const useCartStore = create((set, get) => ({
     if (quantity <= 0) {
       set({ items: get().items.filter((i) => i.product_id !== product_id) })
     } else {
-      set({ items: get().items.map((i) => i.product_id === product_id ? { ...i, quantity, line_total: quantity * i.unit_price * (1 - i.discount_pct / 100) } : i) })
+      const item = get().items.find(i => i.product_id === product_id)
+      if (item) {
+        const line_total = quantity * item.unit_price - (item.discount_amount || 0)
+        set({ items: get().items.map((i) => i.product_id === product_id ? { ...i, quantity, line_total: Math.max(0, line_total) } : i) })
+      }
     }
   },
 
-  updateItemDiscount: (product_id, discount_pct) => {
-    set({ items: get().items.map((i) => i.product_id === product_id ? { ...i, discount_pct, line_total: i.quantity * i.unit_price * (1 - discount_pct / 100) } : i) })
+  updateItemDiscount: (product_id, discount_amount) => {
+    set({ items: get().items.map((i) => i.product_id === product_id ? { ...i, discount_amount: Math.max(0, Math.min(discount_amount, i.quantity * i.unit_price)), line_total: Math.max(0, i.quantity * i.unit_price - Math.max(0, Math.min(discount_amount, i.quantity * i.unit_price))) } : i) })
+  },
+
+  updateItemPrice: (product_id, unit_price) => {
+    const item = get().items.find(i => i.product_id === product_id)
+    if (item) {
+      const line_total = item.quantity * unit_price - (item.discount_amount || 0)
+      set({ items: get().items.map((i) => i.product_id === product_id ? { ...i, unit_price: Math.max(0, unit_price), line_total: Math.max(0, line_total) } : i) })
+    }
   },
 
   setCustomer: (customer) => set({ customer }),
   setDiscount: (discount) => set({ discount }),
 
-  getSubtotal: () => get().items.reduce((sum, i) => sum + i.line_total, 0),
-  getTax: () => get().items.reduce((sum, i) => sum + (i.line_total * i.tax_rate / 100), 0),
+  getSubtotal: () => get().items.reduce((sum, i) => sum + (i.quantity * i.unit_price), 0),
+  getTax: () => get().items.reduce((sum, i) => sum + ((i.quantity * i.unit_price - (i.discount_amount || 0)) * i.tax_rate / 100), 0),
+  getItemDiscountTotal: () => get().items.reduce((sum, i) => sum + (i.discount_amount || 0), 0),
   getTotal: () => {
     const subtotal = get().getSubtotal()
     const tax = get().getTax()
-    const discount = get().discount
-    return subtotal + tax - discount
+    const itemDiscount = get().getItemDiscountTotal()
+    const billDiscount = get().discount
+    return subtotal + tax - itemDiscount - billDiscount
   },
 
   clearCart: () => set({ items: [], customer: null, discount: 0 }),

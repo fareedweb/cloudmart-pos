@@ -19,6 +19,8 @@ export default function POSCashier() {
   const [cashGiven, setCashGiven] = useState('')
   const [loading, setLoading] = useState(false)
   const [discountInput, setDiscountInput] = useState('')
+  const [editModal, setEditModal] = useState(null)
+  const [editValue, setEditValue] = useState('')
   const barcodeRef = useRef()
 
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function POSCashier() {
           product_id: i.product_id, 
           quantity: i.quantity, 
           unit_price: i.unit_price, 
-          discount_pct: i.discount_pct || 0, 
+          discount_amount: i.discount_amount || 0, 
           tax_rate: i.tax_rate || 0 
         })),
         discount_amount: cart.discount || 0,
@@ -159,18 +161,22 @@ export default function POSCashier() {
                 <div style={{ fontSize: '13px', fontWeight: 500, flex: 1, marginRight: '8px' }}>{item.name}</div>
                 <button onClick={() => cart.removeItem(item.product_id)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--color-text-danger)', fontSize: '14px' }}>×</button>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button onClick={() => cart.updateQty(item.product_id, item.quantity - 1)} style={{ width: '24px', height: '24px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '6px', cursor: 'pointer', background: 'var(--color-background-secondary)', fontSize: '14px' }}>-</button>
-                  <span style={{ fontSize: '13px', fontWeight: 500, minWidth: '20px', textAlign: 'center' }}>{item.quantity}</span>
-                  <button onClick={() => cart.updateQty(item.product_id, item.quantity + 1)} style={{ width: '24px', height: '24px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '6px', cursor: 'pointer', background: 'var(--color-background-secondary)', fontSize: '14px' }}>+</button>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input type="number" placeholder="Disc%" value={item.discount_pct || ''} min="0" max="100"
-                    onChange={e => cart.updateItemDiscount(item.product_id, parseFloat(e.target.value) || 0)}
-                    style={{ width: '56px', fontSize: '12px', padding: '4px 6px' }} />
-                  <span style={{ fontSize: '13px', fontWeight: 500, minWidth: '60px', textAlign: 'right' }}>${item.line_total.toFixed(2)}</span>
-                </div>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-tertiary)', marginBottom: '6px' }}>${item.unit_price.toFixed(2)}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                <button onClick={() => { setEditModal({ product_id: item.product_id, type: 'qty' }); setEditValue(item.quantity.toString()) }}
+                  style={{ flex: 1, padding: '6px', fontSize: '12px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '6px', cursor: 'pointer', background: 'var(--color-background-secondary)' }}>
+                  Qty: {item.quantity} ✎
+                </button>
+                <button onClick={() => { setEditModal({ product_id: item.product_id, type: 'price' }); setEditValue(item.unit_price.toFixed(2)) }}
+                  style={{ flex: 1, padding: '6px', fontSize: '12px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '6px', cursor: 'pointer', background: 'var(--color-background-secondary)' }}>
+                  Edit Price ✎
+                </button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', gap: '6px' }}>
+                <input type="number" placeholder="Disc $" value={item.discount_amount || ''} min="0" max={item.quantity * item.unit_price}
+                  onChange={e => cart.updateItemDiscount(item.product_id, parseFloat(e.target.value) || 0)}
+                  style={{ flex: 1, fontSize: '11px', padding: '4px 6px' }} />
+                <span style={{ fontSize: '13px', fontWeight: 500, minWidth: '70px', textAlign: 'right' }}>${item.line_total.toFixed(2)}</span>
               </div>
             </div>
           ))}
@@ -183,7 +189,7 @@ export default function POSCashier() {
               onChange={e => { setDiscountInput(e.target.value); cart.setDiscount(parseFloat(e.target.value) || 0) }}
               style={{ flex: 1, fontSize: '13px' }} />
           </div>
-          {[['Subtotal', `$${subtotal.toFixed(2)}`], ['Tax (GST)', `$${tax.toFixed(2)}`], ['Discount', `-$${cart.discount.toFixed(2)}`]].map(([l, v]) => (
+          {[['Subtotal', `$${subtotal.toFixed(2)}`], ['Item Disc', `-$${cart.getItemDiscountTotal().toFixed(2)}`], ['Tax (GST)', `$${tax.toFixed(2)}`], ['Bill Disc', `-$${cart.discount.toFixed(2)}`]].filter(([l]) => l !== 'Item Disc' || cart.getItemDiscountTotal() > 0).map(([l, v]) => (
             <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
               <span>{l}</span><span>{v}</span>
             </div>
@@ -234,6 +240,33 @@ export default function POSCashier() {
       {/* Receipt Modal */}
       {showReceipt && lastSale && (
         <Receipt sale={lastSale} onClose={() => setShowReceipt(false)} />
+      )}
+
+      {/* Edit Modal */}
+      {editModal && (
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--color-background-primary)', borderRadius: '16px', padding: '28px', width: '320px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 500, marginBottom: '20px' }}>
+              {editModal.type === 'qty' ? 'Edit Quantity' : 'Edit Price'}
+            </h3>
+            <input type="number" value={editValue} onChange={e => setEditValue(e.target.value)} placeholder={editModal.type === 'qty' ? 'Quantity' : 'Price'} 
+              style={{ width: '100%', padding: '10px', fontSize: '15px', marginBottom: '16px', borderRadius: '8px', border: '0.5px solid var(--color-border-tertiary)' }} autoFocus />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setEditModal(null)} style={{ flex: 1, padding: '10px', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '8px', cursor: 'pointer', background: 'none', fontSize: '13px' }}>Cancel</button>
+              <button onClick={() => {
+                const value = parseFloat(editValue) || 0
+                if (value > 0) {
+                  if (editModal.type === 'qty') {
+                    cart.updateQty(editModal.product_id, value)
+                  } else {
+                    cart.updateItemPrice(editModal.product_id, value)
+                  }
+                }
+                setEditModal(null)
+              }} style={{ flex: 2, padding: '10px', background: '#185FA5', color: '#E6F1FB', border: 'none', borderRadius: '8px', fontWeight: 500, fontSize: '14px', cursor: 'pointer' }}>Save</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
