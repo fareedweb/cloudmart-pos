@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { getCustomers, createCustomer, getCustomer } from '../api/api'
+import { getCustomers, createCustomer, updateCustomer, deleteCustomer, getCustomer } from '../api/api'
 import toast from 'react-hot-toast'
 
 export default function Customers() {
   const [customers, setCustomers] = useState([])
   const [selected, setSelected] = useState(null)
   const [detail, setDetail] = useState(null)
+  const [editingId, setEditingId] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState({ name:'', phone:'', email:'', discount_pct:0 })
 
@@ -17,10 +18,46 @@ export default function Customers() {
     setDetail(res.data)
   }
 
+  const openCreate = () => {
+    setEditingId(null)
+    setForm({ name:'', phone:'', email:'', discount_pct:0 })
+    setShowModal(true)
+  }
+
+  const openEdit = (c) => {
+    setEditingId(c.id)
+    setForm({ name: c.name, phone: c.phone || '', email: c.email || '', discount_pct: c.discount_pct || 0 })
+    setShowModal(true)
+  }
+
   const handleSave = async () => {
     if (!form.name) return toast.error('Name required')
-    try { await createCustomer(form); toast.success('Customer added'); setShowModal(false); getCustomers().then(r=>setCustomers(r.data)) }
-    catch (err) { toast.error(err.response?.data?.detail || 'Failed') }
+    try {
+      if (editingId) {
+        await updateCustomer(editingId, form)
+        toast.success('Customer updated')
+      } else {
+        await createCustomer(form)
+        toast.success('Customer added')
+      }
+      setShowModal(false)
+      setEditingId(null)
+      setForm({ name:'', phone:'', email:'', discount_pct:0 })
+      getCustomers().then(r=>setCustomers(r.data))
+      setSelected(null)
+      setDetail(null)
+    } catch (err) { toast.error(err.response?.data?.detail || 'Failed') }
+  }
+
+  const handleDelete = async (c) => {
+    if (!confirm('Delete this customer?')) return
+    await deleteCustomer(c.id)
+    toast.success('Customer deleted')
+    getCustomers().then(r=>setCustomers(r.data))
+    if (selected?.id === c.id) {
+      setSelected(null)
+      setDetail(null)
+    }
   }
 
   return (
@@ -28,19 +65,25 @@ export default function Customers() {
       <div style={{ padding:'24px', overflowY:'auto' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px' }}>
           <h1 style={{ fontSize:'20px', fontWeight:500 }}>Customers</h1>
-          <button onClick={()=>setShowModal(true)} style={{ padding:'8px 16px', background:'#185FA5', color:'#E6F1FB', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:500, fontSize:'13px' }}>+ Add customer</button>
+          <button onClick={openCreate} style={{ padding:'8px 16px', background:'#185FA5', color:'#E6F1FB', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:500, fontSize:'13px' }}>+ Add customer</button>
         </div>
         <div style={{ background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:'12px', overflow:'hidden' }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'13px' }}>
-            <thead><tr style={{ background:'var(--color-background-secondary)' }}>{['Name','Phone','Email','Loyalty pts','Credit','Discount'].map(h=><th key={h} style={{ padding:'10px 14px', textAlign:'left', fontWeight:500, color:'var(--color-text-secondary)' }}>{h}</th>)}</tr></thead>
+            <thead><tr style={{ background:'var(--color-background-secondary)' }}>{['Name','Phone','Email','Loyalty pts','Credit','Discount',''].map(h=><th key={h} style={{ padding:'10px 14px', textAlign:'left', fontWeight:500, color:'var(--color-text-secondary)' }}>{h}</th>)}</tr></thead>
             <tbody>{customers.map(c=>(
-              <tr key={c.id} onClick={()=>handleSelect(c)} style={{ borderTop:'0.5px solid var(--color-border-tertiary)', cursor:'pointer', background:selected?.id===c.id?'var(--color-background-info)':'transparent' }}>
-                <td style={{ padding:'10px 14px', fontWeight:500 }}>{c.name}</td>
+              <tr key={c.id} style={{ borderTop:'0.5px solid var(--color-border-tertiary)', background:selected?.id===c.id?'var(--color-background-info)':'transparent' }}>
+                <td style={{ padding:'10px 14px', fontWeight:500, cursor:'pointer' }} onClick={()=>handleSelect(c)}>{c.name}</td>
                 <td style={{ padding:'10px 14px', color:'var(--color-text-secondary)' }}>{c.phone||'—'}</td>
                 <td style={{ padding:'10px 14px', color:'var(--color-text-secondary)' }}>{c.email||'—'}</td>
                 <td style={{ padding:'10px 14px', color:'var(--color-text-info)' }}>{c.loyalty_points}</td>
                 <td style={{ padding:'10px 14px', color:c.credit_balance>0?'var(--color-text-danger)':'var(--color-text-secondary)' }}>${c.credit_balance.toFixed(2)}</td>
                 <td style={{ padding:'10px 14px' }}>{c.discount_pct}%</td>
+                <td style={{ padding:'10px 14px' }}>
+                  <div style={{ display:'flex', gap:'6px' }}>
+                    <button onClick={() => openEdit(c)} style={{ fontSize:'12px', padding:'4px 10px', border:'0.5px solid var(--color-border-tertiary)', borderRadius:'6px', cursor:'pointer', background:'none', color:'var(--color-text-secondary)' }}>Edit</button>
+                    <button onClick={() => handleDelete(c)} style={{ fontSize:'12px', padding:'4px 10px', border:'0.5px solid var(--color-border-danger)', borderRadius:'6px', cursor:'pointer', background:'none', color:'var(--color-text-danger)' }}>Delete</button>
+                  </div>
+                </td>
               </tr>
             ))}</tbody>
           </table>
@@ -76,7 +119,7 @@ export default function Customers() {
       {showModal && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50 }}>
           <div style={{ background:'var(--color-background-primary)', borderRadius:'16px', padding:'28px', width:'380px' }}>
-            <h3 style={{ fontSize:'16px', fontWeight:500, marginBottom:'20px' }}>Add Customer</h3>
+            <h3 style={{ fontSize:'16px', fontWeight:500, marginBottom:'20px' }}>{editingId ? 'Edit Customer' : 'Add Customer'}</h3>
             <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
               {[['name','Name *'],['phone','Phone'],['email','Email'],['discount_pct','Discount %']].map(([k,l])=>(
                 <div key={k}><label style={{ fontSize:'12px', color:'var(--color-text-secondary)', display:'block', marginBottom:'4px' }}>{l}</label><input value={form[k]||''} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{ width:'100%' }} /></div>

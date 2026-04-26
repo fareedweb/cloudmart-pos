@@ -39,6 +39,7 @@ export const resetPassword = (data) => API.post('/auth/reset-password', data)
 export const getUsers = () => API.get('/users')
 export const createUser = (data) => API.post('/users', data)
 export const updateUser = (id, data) => API.put(`/users/${id}`, data)
+export const deleteUser = (id) => API.delete(`/users/${id}`)
 export const getActivityLogs = () => API.get('/users/activity-logs')
 
 // Products
@@ -76,6 +77,8 @@ export const voidSale = (id) => API.post(`/sales/${id}/void`)
 // Customers
 export const getCustomers = () => API.get('/customers')
 export const createCustomer = (data) => API.post('/customers', data)
+export const updateCustomer = (id, data) => API.put(`/customers/${id}`, data)
+export const deleteCustomer = (id) => API.delete(`/customers/${id}`)
 export const getCustomer = (id) => API.get(`/customers/${id}`)
 
 // Returns

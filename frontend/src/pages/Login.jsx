@@ -28,25 +28,25 @@ export default function Login() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-background-tertiary)', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ background: 'var(--color-background-primary)', border: '1px solid var(--color-border-primary)', borderRadius: 'var(--radius-2xl)', padding: 'var(--space-3xl)', width: '360px', boxShadow: 'var(--shadow-lg)' }}>
+    <div className="page-shell">
+      <div className="auth-card">
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-3xl)' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: 'var(--radius-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontWeight: 600, fontSize: '22px', margin: '0 auto var(--space-sm)' }}>CM</div>
-          <h1 style={{ fontSize: '24px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-xs)' }}>CloudMart POS</h1>
-          <p style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>Sign in to your account</p>
+          <div className="brand-logo">CM</div>
+          <h1 className="page-title">CloudMart POS</h1>
+          <p className="page-subtitle">Sign in to your account</p>
         </div>
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
-          <div>
-            <label style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 'var(--space-sm)' }}>Username</label>
-            <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter username" style={{ width: '100%', padding: 'var(--space-md)', border: '1px solid var(--color-border-secondary)', borderRadius: 'var(--radius-md)', fontSize: '14px' }} autoFocus />
+          <div className="form-group">
+            <label className="form-label">Username</label>
+            <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter username" className="form-field" autoFocus />
           </div>
-          <div>
-            <label style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 'var(--space-sm)' }}>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" style={{ width: '100%', padding: 'var(--space-md)', border: '1px solid var(--color-border-secondary)', borderRadius: 'var(--radius-md)', fontSize: '14px' }} />
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" className="form-field" />
           </div>
-          <button type="submit" disabled={loading} style={{ padding: 'var(--space-md)', background: 'var(--color-primary)', color: '#ffffff', border: 'none', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', marginTop: 'var(--space-sm)', transition: 'background-color 0.2s ease' }}>
+          <button type="submit" disabled={loading} className="primary-btn">
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>

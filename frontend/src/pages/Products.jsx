@@ -32,9 +32,11 @@ export default function Products() {
         cost_price: parseFloat(form.cost_price) || 0,
         selling_price: parseFloat(form.selling_price),
         tax_rate: parseFloat(form.tax_rate) || 0,
-        stock_qty: parseFloat(form.stock_qty) || 0,
         low_stock_threshold: parseFloat(form.low_stock_threshold) || 10,
         expiry_date: form.expiry_date || null
+      }
+      if (!editing) {
+        data.stock_qty = parseFloat(form.stock_qty) || 0
       }
       console.log('Product data:', data)
       if (editing) {
@@ -112,11 +114,19 @@ export default function Products() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ background: 'var(--color-background-primary)', borderRadius: '16px', padding: '28px', width: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 500, marginBottom: '20px' }}>{editing ? 'Edit product' : 'Add product'}</h3>
+            {editing && form.stock_qty !== undefined && (
+              <div style={{ background: 'var(--color-background-info)', border: '1px solid var(--color-text-info)', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: 'var(--color-text-info)' }}>
+                📦 Current stock: <strong>{form.stock_qty}</strong> — To adjust stock, use the <strong>Inventory</strong> module
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              {[['name','Name *','text'],['barcode','Barcode','text'],['sku','SKU','text'],['selling_price','Selling price *','number'],['cost_price','Cost price','number'],['tax_rate','Tax rate %','number'],['stock_qty','Initial stock','number'],['low_stock_threshold','Low stock alert','number'],['expiry_date','Expiry date','date']].map(([key, label, type]) => (
+              {(editing ? 
+                [['name','Name *','text'],['barcode','Barcode','text'],['sku','SKU','text'],['selling_price','Selling price *','number'],['cost_price','Cost price','number'],['tax_rate','Tax rate %','number'],['low_stock_threshold','Low stock alert','number'],['expiry_date','Expiry date','date']]
+                : [['name','Name *','text'],['barcode','Barcode','text'],['sku','SKU','text'],['selling_price','Selling price *','number'],['cost_price','Cost price','number'],['tax_rate','Tax rate %','number'],['stock_qty','Initial stock','number'],['low_stock_threshold','Low stock alert','number'],['expiry_date','Expiry date','date']]
+              ).map(([key, label, type]) => (
                 <div key={key} style={key === 'name' ? { gridColumn: 'span 2' } : {}}>
                   <label style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>{label}</label>
-                  <input type={type} value={form[key] || ''} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={{ width: '100%' }} />
+                  <input type={type} value={form[key] !== undefined && form[key] !== null ? form[key] : ''} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={{ width: '100%' }} />
                 </div>
               ))}
               <div>
